@@ -1,0 +1,13 @@
+# env file
+.env
+
+# Fuzz files
+.fuzz
+logs
+p2p_fuzz_config.yaml
+
+# Node modules
+node_modules
+
+# build files
+dist
