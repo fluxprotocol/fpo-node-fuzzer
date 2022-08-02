@@ -1,5 +1,5 @@
-import { ethers, Wallet } from "ethers";
-import Ganache, { EthereumProvider, Server } from "ganache";
+import { Wallet } from "ethers";
+import Ganache, { EthereumProvider, Server, ServerOptions } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
 import FluxP2PFactory from '../FluxP2PFactory.json';
 import assert from "assert";
@@ -8,11 +8,16 @@ import assert from "assert";
 export class PrivateChain {
   private server: Server<"ethereum">;
   private provider: EthereumProvider;
-
   private port: number;
 
   constructor(port: number) {
-    this.server = Ganache.server();
+    const options = {
+      chain: {
+        networkId: 5777,
+        chainId: 5777,
+      }
+    };
+    this.server = Ganache.server(options);
     this.provider = this.server.provider;
     this.port = port;
   }
@@ -22,32 +27,28 @@ export class PrivateChain {
       console.error(`Configured port '${this.port}' for blockchain not available.`)
       this.port = await grabFreePort(new Set());
     }
-    await this.server.listen(this.port, "localhost");
+    await this.server.listen(this.port, 'localhost');
     console.log(`Blockchain started on '${this.port}'`);
-    // let ca = await this.deploy();
-    // console.log("**deployed contract to address: ", ca)
-
   }
 
   async set_account_balance(address: string, balance: string) {
     // TODO handle this result.
     const result = await this.provider.send("evm_setAccountBalance", [address, balance]);
   }
-  
+
   async create_address(): Promise<Wallet> {
     const wallet = Wallet.createRandom();
     // TODO handle this result.
     const result = await this.provider.send("evm_addAccount", [wallet.address, ""]);
-    await this.set_account_balance(wallet.address, "0x1000000");
+    await this.set_account_balance(wallet.address, "0xffffffff");
     return wallet;
   }
 
   used_port(): number {
-		return this.port;
-	}
+    return this.port;
+  }
 
   async deploy(): Promise<any> {
-
     let [from] = Object.keys(this.provider.getInitialAccounts());
 
     console.log("**deploying contract from account: ", from);
@@ -56,13 +57,14 @@ export class PrivateChain {
         from,
         data: FluxP2PFactory.bytecode,
         gas: "0xffffff"
-      } as any
+      }
     ]);
 
     const { status, contractAddress } = await this.provider.send(
       "eth_getTransactionReceipt",
       [transactionHash]
     );
+
     assert.strictEqual(status, "0x1", "Contract was not deployed");
     return contractAddress;
   }
@@ -74,9 +76,7 @@ export class PrivateChain {
       address: key,
       data: x[key]
     }));
-   
-      return objArray[0]
 
-
+    return objArray[0];
   }
 }

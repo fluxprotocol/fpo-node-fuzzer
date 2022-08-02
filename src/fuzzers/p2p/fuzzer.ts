@@ -78,12 +78,10 @@ export class P2PFuzzer extends IFuzzer {
 		await this.chain.start();
 		this.contract_address = await this.chain.deploy()
 		console.log("**deployed contract to address: ", this.contract_address);
-		// let creator = await this.chain.create_address()
-		let creator = this.chain.get_first_account();
+		const creator = this.chain.get_first_account();
 		console.log("**creator", creator)
 		this.config.p2p_config.creatorAddress = creator.address;
 		process.env[this.config.p2p_config.creatorPrivKeyEnv] = creator.data.secretKey;
-
 
 		// Set the port in case configured one was taken.
 		this.config.blockchain_port = this.chain.used_port();

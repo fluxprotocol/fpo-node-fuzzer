@@ -9,6 +9,7 @@ export class P2PNodeInfo {
 	peerId: PeerId;
 	address: string;
 	privateKeyEnv: string;
+	rpc: string;
 
 	constructor(id: number, port: number, peerId: PeerId, address: string, privateKeyEnv: string, rpc: string) {
 		this.id = id;
@@ -16,6 +17,7 @@ export class P2PNodeInfo {
 		this.peerId = peerId;
 		this.address = address;
 		this.privateKeyEnv = privateKeyEnv;
+		this.rpc = rpc;
 	}
 
 	createNodeConfig(creator: string, interval: number, deviation: number, peers: P2PNodeInfo[], pairs: Pair[], contractAddress: String): UnparsedAppConfig {
@@ -36,7 +38,7 @@ export class P2PNodeInfo {
 					"networkId": 5777,
 					"chainId": 5777,
 					"privateKeyEnvKey": this.privateKeyEnv,
-					"rpc": "http://localhost:8888",
+					"rpc": this.rpc,
 				}
 			],
 			"modules": [
