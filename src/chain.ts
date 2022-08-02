@@ -1,6 +1,8 @@
 import { Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
+import FluxP2PFactory from '../FluxP2PFactory.json';
+import assert from "assert";
 
 
 export class PrivateChain {
@@ -21,6 +23,8 @@ export class PrivateChain {
     }
     await this.server.listen(this.port, "localhost");
     console.log(`Blockchain started on '${this.port}'`);
+    let ca = await this.deploy();
+    console.log("**deployed contract to address: ", ca)
   }
 
   async set_account_balance(address: string, balance: string) {
@@ -32,11 +36,32 @@ export class PrivateChain {
     const wallet = Wallet.createRandom();
     // TODO handle this result.
     const result = await this.provider.send("evm_addAccount", [wallet.address, ""]);
-    this.set_account_balance(wallet.address, "0x1000000");
+    await this.set_account_balance(wallet.address, "0x1000000");
     return wallet;
   }
 
   used_port(): number {
 		return this.port;
 	}
+
+  async deploy(): Promise<any> {
+
+    let [from] = Object.keys(this.provider.getInitialAccounts());
+
+    console.log("**deploying contract from account: ", from);
+    const transactionHash = await this.provider.send("eth_sendTransaction", [
+      {
+        from,
+        data: FluxP2PFactory.bytecode,
+        gas: "0xffffff"
+      } as any
+    ]);
+
+    const { status, contractAddress } = await this.provider.send(
+      "eth_getTransactionReceipt",
+      [transactionHash]
+    );
+    assert.strictEqual(status, "0x1", "Contract was not deployed");
+    return contractAddress;
+  }
 }
