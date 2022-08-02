@@ -18,7 +18,7 @@ export class P2PNodeInfo {
 		this.privateKeyEnv = privateKeyEnv;
 	}
 
-	createNodeConfig(creator: string, interval: number, deviation: number, peers: P2PNodeInfo[], pairs: Pair[]): UnparsedAppConfig {
+	createNodeConfig(creator: string, interval: number, deviation: number, peers: P2PNodeInfo[], pairs: Pair[], contractAddress: String): UnparsedAppConfig {
 		return {
 			"p2p": {
 				"peer_id": this.peerId.toJSON(),
@@ -43,7 +43,7 @@ export class P2PNodeInfo {
 				{
 					"networkId": 5777,
 					// @ts-ignore
-					"contractAddress": "0xcE8edAc0318D8e70B3fdA57Cd63596Bc147618D3",
+					"contractAddress": contractAddress,
 					"deviationPercentage": deviation,
 					"minimumUpdateInterval": 1800000,
 					"pairs": pairs,

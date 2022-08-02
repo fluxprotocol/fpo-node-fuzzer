@@ -1,4 +1,4 @@
-import { Wallet } from "ethers";
+import { ethers, Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
 import FluxP2PFactory from '../FluxP2PFactory.json';
@@ -8,6 +8,7 @@ import assert from "assert";
 export class PrivateChain {
   private server: Server<"ethereum">;
   private provider: EthereumProvider;
+
   private port: number;
 
   constructor(port: number) {
@@ -23,8 +24,9 @@ export class PrivateChain {
     }
     await this.server.listen(this.port, "localhost");
     console.log(`Blockchain started on '${this.port}'`);
-    let ca = await this.deploy();
-    console.log("**deployed contract to address: ", ca)
+    // let ca = await this.deploy();
+    // console.log("**deployed contract to address: ", ca)
+
   }
 
   async set_account_balance(address: string, balance: string) {
@@ -63,5 +65,18 @@ export class PrivateChain {
     );
     assert.strictEqual(status, "0x1", "Contract was not deployed");
     return contractAddress;
+  }
+
+  get_first_account(): any {
+    let x = this.provider.getInitialAccounts()
+    const objArray: { address: string; data: { unlocked: boolean; secretKey: string; balance: bigint; }; }[] = [];
+    Object.keys(x).forEach(key => objArray.push({
+      address: key,
+      data: x[key]
+    }));
+   
+      return objArray[0]
+
+
   }
 }

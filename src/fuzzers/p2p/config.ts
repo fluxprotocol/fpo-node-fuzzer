@@ -108,15 +108,15 @@ function defaultFuzzConfig(path: string) {
     generate_ports: true,
     generate_pairs: true,
     min_pairs: 1,
-    max_pairs: 7,
+    max_pairs: 1,
     node_config: {
       networks: ["evm"],
       interval: 180000,
       deviation: 0.3,
     },
     p2p_config: {
-      min_nodes: 3,
-      max_nodes: 10,
+      min_nodes: 2,
+      max_nodes: 2,
       generate_peer_ids: true,
       allow_disconnects: false,
       randomly_update_nodes: false,

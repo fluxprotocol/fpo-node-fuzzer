@@ -35,6 +35,7 @@ export class P2PFuzzer extends IFuzzer {
 	pairs: Pair[];
 	peer_ids: PeerId[];
 	ports: number[];
+	contract_address: String
 
 	constructor(path: string) {
 		super();
@@ -70,13 +71,22 @@ export class P2PFuzzer extends IFuzzer {
 			: this.config.p2p_config.pairs;
 		this.peer_ids = new Array(this.config.p2p_config.num_nodes).fill(null);
 		this.ports = new Array(this.config.p2p_config.num_nodes).fill(0);
+		this.contract_address = ""
 	}
 
 	async init() {
 		await this.chain.start();
+		this.contract_address = await this.chain.deploy()
+		console.log("**deployed contract to address: ", this.contract_address)
+		// let creator = await this.chain.create_address()
+		let creator = this.chain.get_first_account()
+		console.log("**creator", creator)
+		this.config.p2p_config.creatorAddress = creator.address
+		this.config.p2p_config.creatorPrivKeyEnv = creator.data.secretKey
+
+
 		// Set the port in case configured one was taken.
 		this.config.blockchain_port = this.chain.used_port();
-
 		let taken_ports: Set<number> = new Set();
 		this.ports = await Promise.all(this.ports.map(async (_: number) => await grabFreePort(taken_ports)));
 		this.peer_ids = await Promise.all(this.config.p2p_config.peer_ids.length === 0 ?
@@ -157,7 +167,7 @@ export class P2PFuzzer extends IFuzzer {
 	async fuzz_main_thread() {
 		const node_configs = this.nodes.map((value, index) => {
 			const peers = [...this.nodes.slice(0, index), ...this.nodes.slice(index + 1)];
-			return value.createNodeConfig(this.config.p2p_config.creatorAddress, this.config.node_config.interval, this.config.node_config.interval, peers, this.pairs);
+			return value.createNodeConfig(this.config.p2p_config.creatorAddress, this.config.node_config.interval, this.config.node_config.interval, peers, this.pairs, this.contract_address);
 		});
 
 		let node_version = new_version(`${randNumberFromRange(0, 3)}.${randNumberFromRange(2, 8)}.${randNumberFromRange(3, 11)}`);
