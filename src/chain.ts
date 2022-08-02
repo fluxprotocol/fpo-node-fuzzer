@@ -24,13 +24,19 @@ export class PrivateChain {
   }
 
   async set_account_balance(address: string, balance: string) {
+    // TODO handle this result.
     const result = await this.provider.send("evm_setAccountBalance", [address, balance]);
   }
-
+  
   async create_address(): Promise<Wallet> {
     const wallet = Wallet.createRandom();
+    // TODO handle this result.
     const result = await this.provider.send("evm_addAccount", [wallet.address, ""]);
     this.set_account_balance(wallet.address, "0x1000000");
     return wallet;
   }
+
+  used_port(): number {
+		return this.port;
+	}
 }

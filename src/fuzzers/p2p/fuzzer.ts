@@ -61,8 +61,8 @@ export class P2PFuzzer extends IFuzzer {
 			fs.mkdirSync(this.output_dir);
 		}
 
-		this.chain = new PrivateChain(8888);
 		this.config = parseFuzzConfig(path);
+		this.chain = new PrivateChain(this.config.blockchain_port);
 
 		this.nodes = new Array(this.config.p2p_config.num_nodes).fill(null);
 		this.pairs = this.config.p2p_config.pairs.length === 0 ?
@@ -74,6 +74,8 @@ export class P2PFuzzer extends IFuzzer {
 
 	async init() {
 		await this.chain.start();
+		// Set the port in case configured one was taken.
+		this.config.blockchain_port = this.chain.used_port();
 
 		let taken_ports: Set<number> = new Set();
 		this.ports = await Promise.all(this.ports.map(async (_: number) => await grabFreePort(taken_ports)));
@@ -125,6 +127,7 @@ export class P2PFuzzer extends IFuzzer {
 	}
 
 	async gen_node_config() {
+		const rpc_url = `http://localhost:${this.config.blockchain_port}`;
 		this.nodes = await Promise.all(this.nodes.map(async (_, id) => {
 			if (id === 0) {
 				// manually set our creator node.
@@ -133,7 +136,8 @@ export class P2PFuzzer extends IFuzzer {
 					this.ports[0],
 					this.peer_ids[0],
 					this.config.p2p_config.creatorAddress,
-					this.config.p2p_config.creatorPrivKeyEnv
+					this.config.p2p_config.creatorPrivKeyEnv,
+					rpc_url
 				);
 			}
 			const wallet = await this.chain.create_address();
@@ -144,7 +148,8 @@ export class P2PFuzzer extends IFuzzer {
 				this.ports[id],
 				this.peer_ids[id],
 				wallet.address,
-				privateKeyEnv
+				privateKeyEnv,
+				rpc_url
 			);
 		}));
 	}

@@ -6,10 +6,12 @@ export interface UnparsedFuzzConfig {
   generate_pairs: boolean;
   min_pairs?: number;
   max_pairs?: number;
+  blockchain_port: number;
 }
 
 export interface FuzzConfig {
   num_pairs: number;
+  blockchain_port: number;
 }
 
 

@@ -73,6 +73,7 @@ export interface P2PFuzzConfig extends FuzzConfig {
 function P2PFuzzConfigFrom(unparsed: UnparsedP2PFuzzConfig): P2PFuzzConfig {
   const num_nodes = randNumberFromRange(unparsed.p2p_config.min_nodes ?? 2, unparsed.p2p_config.max_nodes ?? 20);
   return {
+    blockchain_port: unparsed.blockchain_port,
     num_pairs: randNumberFromRange(unparsed.min_pairs ?? 1, unparsed.max_pairs ?? 7),
     node_config: unparsed.node_config,
     p2p_config: {
@@ -101,9 +102,9 @@ function P2PFuzzConfigFrom(unparsed: UnparsedP2PFuzzConfig): P2PFuzzConfig {
   };
 }
 
-
 function defaultFuzzConfig(path: string) {
   const p2p_fuzz_config: UnparsedP2PFuzzConfig = {
+    blockchain_port: 8888,
     generate_ports: true,
     generate_pairs: true,
     min_pairs: 1,

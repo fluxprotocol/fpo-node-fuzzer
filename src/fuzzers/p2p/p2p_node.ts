@@ -10,7 +10,7 @@ export class P2PNodeInfo {
 	address: string;
 	privateKeyEnv: string;
 
-	constructor(id: number, port: number, peerId: PeerId, address: string, privateKeyEnv: string) {
+	constructor(id: number, port: number, peerId: PeerId, address: string, privateKeyEnv: string, rpc: string) {
 		this.id = id;
 		this.port = port;
 		this.peerId = peerId;
@@ -33,15 +33,15 @@ export class P2PNodeInfo {
 			"networks": [
 				{
 					"type": "evm",
-					"networkId": 1313161555,
-					"chainId": 1313161555,
+					"networkId": 5777,
+					"chainId": 5777,
 					"privateKeyEnvKey": this.privateKeyEnv,
-					"rpc": "https://aurora-testnet.infura.io/v3/228d5a3d31114f54be363b8bb786d228",
+					"rpc": "http://localhost:8888",
 				}
 			],
 			"modules": [
 				{
-					"networkId": 1313161555,
+					"networkId": 5777,
 					// @ts-ignore
 					"contractAddress": "0xcE8edAc0318D8e70B3fdA57Cd63596Bc147618D3",
 					"deviationPercentage": deviation,
