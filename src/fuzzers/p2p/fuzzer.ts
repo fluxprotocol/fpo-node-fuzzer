@@ -71,18 +71,18 @@ export class P2PFuzzer extends IFuzzer {
 			: this.config.p2p_config.pairs;
 		this.peer_ids = new Array(this.config.p2p_config.num_nodes).fill(null);
 		this.ports = new Array(this.config.p2p_config.num_nodes).fill(0);
-		this.contract_address = ""
+		this.contract_address = "";
 	}
 
 	async init() {
 		await this.chain.start();
 		this.contract_address = await this.chain.deploy()
-		console.log("**deployed contract to address: ", this.contract_address)
+		console.log("**deployed contract to address: ", this.contract_address);
 		// let creator = await this.chain.create_address()
-		let creator = this.chain.get_first_account()
+		let creator = this.chain.get_first_account();
 		console.log("**creator", creator)
-		this.config.p2p_config.creatorAddress = creator.address
-		this.config.p2p_config.creatorPrivKeyEnv = creator.data.secretKey
+		this.config.p2p_config.creatorAddress = creator.address;
+		process.env[this.config.p2p_config.creatorPrivKeyEnv] = creator.data.secretKey;
 
 
 		// Set the port in case configured one was taken.
