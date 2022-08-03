@@ -35,15 +35,15 @@ export class P2PNodeInfo {
 			"networks": [
 				{
 					"type": "evm",
-					"networkId": 5777,
-					"chainId": 5777,
+					"networkId": 1313161555,
+					"chainId": 1313161555,
 					"privateKeyEnvKey": this.privateKeyEnv,
 					"rpc": this.rpc,
 				}
 			],
 			"modules": [
 				{
-					"networkId": 5777,
+					"networkId": 1313161555,
 					// @ts-ignore
 					"contractAddress": contractAddress,
 					"deviationPercentage": deviation,

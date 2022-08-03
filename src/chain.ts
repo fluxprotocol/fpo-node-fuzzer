@@ -1,4 +1,4 @@
-import { Wallet } from "ethers";
+import { ethers, Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server, ServerOptions } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
 import FluxP2PFactory from '../FluxP2PFactory.json';
@@ -7,19 +7,23 @@ import assert from "assert";
 
 export class PrivateChain {
   private server: Server<"ethereum">;
-  private provider: EthereumProvider;
+  // private provider: EthereumProvider;
+  private provider: ethers.providers.Web3Provider;
   private port: number;
+  creator: Wallet;
 
   constructor(port: number) {
     const options = {
       chain: {
-        networkId: 5777,
-        chainId: 5777,
+        networkId: 1313161555,
+        chainId: 1313161555,
       }
     };
     this.server = Ganache.server(options);
-    this.provider = this.server.provider;
+    this.server.provider
     this.port = port;
+    this.provider = new ethers.providers.Web3Provider(this.server.provider as unknown as ethers.providers.ExternalProvider);
+    this.creator = Wallet.createRandom();
   }
 
   async start() {
@@ -28,18 +32,23 @@ export class PrivateChain {
       this.port = await grabFreePort(new Set());
     }
     await this.server.listen(this.port, 'localhost');
+    console.log(`network`, await this.provider.getNetwork());
     console.log(`Blockchain started on '${this.port}'`);
+    const result = await this.server.provider.send("evm_addAccount", [this.creator.address, ""]);
+    this.provider = new ethers.providers.Web3Provider(this.server.provider as unknown as ethers.providers.ExternalProvider);
+    console.log(`network`, await this.provider.getNetwork());
+    await this.set_account_balance(this.creator.address, "0xffffffff");
   }
 
   async set_account_balance(address: string, balance: string) {
     // TODO handle this result.
-    const result = await this.provider.send("evm_setAccountBalance", [address, balance]);
+    const result = await this.server.provider.send("evm_setAccountBalance", [address, balance]);
   }
 
   async create_address(): Promise<Wallet> {
     const wallet = Wallet.createRandom();
     // TODO handle this result.
-    const result = await this.provider.send("evm_addAccount", [wallet.address, ""]);
+    const result = await this.server.provider.send("evm_addAccount", [wallet.address, ""]);
     await this.set_account_balance(wallet.address, "0xffffffff");
     return wallet;
   }
@@ -49,10 +58,11 @@ export class PrivateChain {
   }
 
   async deploy(): Promise<any> {
-    let [from] = Object.keys(this.provider.getInitialAccounts());
+    const [from] = Object.keys(this.server.provider.getInitialAccounts());
 
     console.log("**deploying contract from account: ", from);
-    const transactionHash = await this.provider.send("eth_sendTransaction", [
+    console.log("**deploying contract from account: ", this.creator.address);
+    const transactionHash = await this.server.provider.send("eth_sendTransaction", [
       {
         from,
         data: FluxP2PFactory.bytecode,
@@ -60,7 +70,7 @@ export class PrivateChain {
       }
     ]);
 
-    const { status, contractAddress } = await this.provider.send(
+    const { status, contractAddress } = await this.server.provider.send(
       "eth_getTransactionReceipt",
       [transactionHash]
     );
@@ -70,7 +80,7 @@ export class PrivateChain {
   }
 
   get_first_account(): any {
-    let x = this.provider.getInitialAccounts()
+    let x = this.server.provider.getInitialAccounts()
     const objArray: { address: string; data: { unlocked: boolean; secretKey: string; balance: bigint; }; }[] = [];
     Object.keys(x).forEach(key => objArray.push({
       address: key,
