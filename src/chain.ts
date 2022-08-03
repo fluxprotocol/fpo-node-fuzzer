@@ -1,7 +1,7 @@
 import { ethers, Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server, ServerOptions } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
-import FluxP2PFactory from '../FluxP2PFactory.json';
+import FluxP2PFactory from 'fpo-node/dist/src/modules/p2p/FluxP2PFactory.json';
 import assert from "assert";
 
 
@@ -76,7 +76,7 @@ export class PrivateChain {
       address: ethers.utils.getAddress(key),
       data: accounts[key]
     }));
-    
+
     return objArray[0];
   }
 }

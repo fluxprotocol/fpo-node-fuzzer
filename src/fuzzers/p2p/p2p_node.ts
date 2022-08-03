@@ -22,16 +22,19 @@ export class P2PNodeInfo {
 
 	createNodeConfig(creator: string, interval: number, deviation: number, peers: P2PNodeInfo[], pairs: Pair[], contractAddress: String): UnparsedAppConfig {
 		return {
-			"p2p": {
-				"peer_id": this.peerId.toJSON(),
-				// @ts-ignore
-				"addresses": {
-					"listen": [`/ip4/127.0.0.1/tcp/${this.port}/p2p/${this.peerId.toB58String()}`],
-				},
-				"peers": peers.map(peer => {
-					return `/ip4/127.0.0.1/tcp/${peer.port}/p2p/${peer.peerId.toB58String()}`;
-				}),
-			},
+			"p2p": [
+				{
+					"networkId": 5777,
+					"peer_id": this.peerId.toJSON(),
+					// @ts-ignore
+					"addresses": {
+						"listen": [`/ip4/127.0.0.1/tcp/${this.port}/p2p/${this.peerId.toB58String()}`],
+					},
+					"peers": peers.map(peer => {
+						return `/ip4/127.0.0.1/tcp/${peer.port}/p2p/${peer.peerId.toB58String()}`;
+					}),
+				}
+			],
 			"networks": [
 				{
 					"type": "evm",
