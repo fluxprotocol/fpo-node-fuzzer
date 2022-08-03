@@ -1,4 +1,4 @@
-import { Wallet } from "ethers";
+import { ethers, Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server, ServerOptions } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
 import FluxP2PFactory from '../FluxP2PFactory.json';
@@ -40,7 +40,7 @@ export class PrivateChain {
     const wallet = Wallet.createRandom();
     // TODO handle this result.
     const result = await this.provider.send("evm_addAccount", [wallet.address, ""]);
-    await this.set_account_balance(wallet.address, "0xffffffff");
+    await this.set_account_balance(wallet.address, "0x3635C9ADC5DEA00000");
     return wallet;
   }
 
@@ -70,13 +70,13 @@ export class PrivateChain {
   }
 
   get_first_account(): any {
-    let x = this.provider.getInitialAccounts()
+    let accounts = this.provider.getInitialAccounts()
     const objArray: { address: string; data: { unlocked: boolean; secretKey: string; balance: bigint; }; }[] = [];
-    Object.keys(x).forEach(key => objArray.push({
-      address: key,
-      data: x[key]
+    Object.keys(accounts).forEach(key => objArray.push({
+      address: ethers.utils.getAddress(key),
+      data: accounts[key]
     }));
-
+    
     return objArray[0];
   }
 }

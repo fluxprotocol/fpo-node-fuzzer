@@ -3281,7 +3281,7 @@ forwarded@0.2.0:
 
 "fpo-node@git+https://github.com/fluxprotocol/fpo-node#feature/p2p":
   version "1.2.1"
-  resolved "git+https://github.com/fluxprotocol/fpo-node#284c46647c2b0d1d715058ce77aaa18e84b969f0"
+  resolved "git+https://github.com/fluxprotocol/fpo-node#a88a7b607e4e0eaaf5f12ba7e8f629fef0854572"
   dependencies:
     "@chainsafe/libp2p-noise" "^5.0.3"
     "@fluxprotocol/oracle-vm" "^2.0.0"
