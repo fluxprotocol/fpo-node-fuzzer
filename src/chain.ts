@@ -1,10 +1,8 @@
 import { ethers, Wallet } from "ethers";
-import Ganache, { EthereumProvider, Server, ServerOptions } from "ganache";
+import Ganache, { EthereumProvider, Server } from "ganache";
 import { grabFreePort, isPortReachable } from "./utils/port";
 import FluxP2PFactory from 'fpo-node/dist/src/modules/p2p/FluxP2PFactory.json';
 import assert from "assert";
-
-
 export class PrivateChain {
   private server: Server<"ethereum">;
   private provider: EthereumProvider;
@@ -15,19 +13,21 @@ export class PrivateChain {
       chain: {
         networkId: 5777,
         chainId: 5777,
-      }
+
+      },
     };
     this.server = Ganache.server(options);
     this.provider = this.server.provider;
     this.port = port;
   }
-
+  
   async start() {
-    if (await isPortReachable(this.port, { host: 'localhost' })) {
+    if (await isPortReachable(this.port, { host: '0.0.0.0' })) {
       console.error(`Configured port '${this.port}' for blockchain not available.`)
       this.port = await grabFreePort(new Set());
     }
-    await this.server.listen(this.port, 'localhost');
+    await this.provider.initialize();
+    await this.server.listen(this.port, '0.0.0.0');
     console.log(`Blockchain started on '${this.port}'`);
   }
 
