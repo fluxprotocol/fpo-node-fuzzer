@@ -17,6 +17,8 @@
     "fpo-node": "git+https://github.com/fluxprotocol/fpo-node#feature/p2p",
     "ganache": "^7.4.0",
     "peer-id": "^0.14.8",
+    "winston": "^3.8.1",
+    "winston-daily-rotate-file": "^4.7.1",
     "yaml": "^2.1.1"
   },
   "devDependencies": {

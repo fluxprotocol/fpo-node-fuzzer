@@ -1,33 +1,72 @@
+import assert from "assert";
 import { ethers, Wallet } from "ethers";
 import Ganache, { EthereumProvider, Server } from "ganache";
+import winston, { format } from 'winston';
+import 'winston-daily-rotate-file';
+
 import { grabFreePort, isPortReachable } from "./utils/port";
+
 import FluxP2PFactory from 'fpo-node/dist/src/modules/p2p/FluxP2PFactory.json';
-import assert from "assert";
 export class PrivateChain {
   private server: Server<"ethereum">;
   private provider: EthereumProvider;
   private port: number;
 
-  constructor(port: number) {
+  constructor(port: number, output_dir: string) {
+    const logger = winston.createLogger({
+      format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+        format.metadata({ fillExcept: ['message', 'level', 'timestamp', 'label'] }),
+      ),
+      transports: [
+        new winston.transports.DailyRotateFile({
+          level: 'debug',
+          filename: 'blockchain-%DATE%.logs',
+          datePattern: 'YYYY-MMM-DD',
+          zippedArchive: true,
+          dirname: output_dir,
+          format: format.printf((info) => {
+            if (info.metadata?.error) {
+              return `${info.timestamp} ${info.level}: ${info.message} ${info.metadata.error}`
+            }
+
+            return `${info.timestamp} ${info.level}: ${info.message}`
+          }),
+          maxFiles: '14d',
+        })
+      ]
+    });
+
     const options = {
       chain: {
         networkId: 5777,
         chainId: 5777,
-
       },
+      logging: {
+        logger: {
+          log: (msg: string) => {
+            if (!msg.startsWith('evm') && !msg.startsWith('eth')) {
+              logger.info(msg);
+              msg = '';
+            }
+          },
+          verbose: true,
+        }
+      }
     };
+
     this.server = Ganache.server(options);
     this.provider = this.server.provider;
     this.port = port;
   }
-  
+
   async start() {
-    if (await isPortReachable(this.port, { host: '0.0.0.0' })) {
+    if (await isPortReachable(this.port, { host: 'localhost' })) {
       console.error(`Configured port '${this.port}' for blockchain not available.`)
       this.port = await grabFreePort(new Set());
     }
     await this.provider.initialize();
-    await this.server.listen(this.port, '0.0.0.0');
+    await this.server.listen(this.port, '127.0.0.1');
     console.log(`Blockchain started on '${this.port}'`);
   }
 

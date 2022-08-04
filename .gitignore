@@ -8,6 +8,7 @@ p2p_fuzz_config.yaml
 
 # Node modules
 node_modules
+yarn-error.log
 
 # build files
 dist
