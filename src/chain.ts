@@ -45,10 +45,12 @@ export class PrivateChain {
       logging: {
         logger: {
           log: (msg: string) => {
-            if (!msg.startsWith('evm') && !msg.startsWith('eth')) {
+            if (msg.includes("Runtime error") || msg.includes("Revert error")) {
+              logger.error(msg);
+            } else if (!msg.startsWith('evm') && !msg.startsWith('eth')) {
               logger.info(msg);
-              msg = '';
             }
+            msg = '';
           },
           verbose: true,
         }
