@@ -61,7 +61,7 @@ export class P2PFuzzer extends IFuzzer {
 			fs.mkdirSync('.fuzz');
 		}
 
-		this.output_dir = process.env.FUZZ_LOGS = process.env.OUTPUT_DIR = `.fuzz/${randomString(8)}-${randomString(8)}-${randomString(8)}-${randomString(8)}`;
+		this.output_dir = process.env.FUZZ_LOGS = process.env.OUTPUT_DIR = `.fuzz/${Date.now()}-${randomString(8)}-${randomString(8)}-${randomString(8)}`;
 		if (!fs.existsSync(this.output_dir)) {
 			fs.mkdirSync(this.output_dir);
 		}
