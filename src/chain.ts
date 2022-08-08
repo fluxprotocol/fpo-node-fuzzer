@@ -72,6 +72,13 @@ export class PrivateChain {
     console.log(`Blockchain started on '${this.port}'`);
   }
 
+  async stop() {
+    this.provider.clearListeners();
+    await this.provider.disconnect();
+    this.server.clearListeners();
+    await this.server.close();
+  }
+
   async set_account_balance(address: string, balance: string) {
     // TODO handle this result.
     const result = await this.provider.send("evm_setAccountBalance", [address, balance]);

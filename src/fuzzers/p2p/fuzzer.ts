@@ -27,11 +27,18 @@ interface NodeCluster {
 	}
 }
 
+let fuzz_logger = winston.createLogger({
+	format: format.combine(
+		format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+		format.metadata({ fillExcept: ['message', 'level', 'timestamp', 'label'] }),
+	),
+	transports: [
+	]
+});
 
 export class P2PFuzzer extends IFuzzer {
 	chain: PrivateChain;
 	config: P2PFuzzConfig;
-	logger: winston.Logger;
 	output_dir: string;
 	type: string = "Fuzzer";
 
@@ -43,19 +50,6 @@ export class P2PFuzzer extends IFuzzer {
 
 	constructor(path: string) {
 		super();
-		function exitHandler(code: number) {
-			console.log(`exited with code: ${code}`)
-
-			if (cluster.worker) {
-				const workers = cluster.workers;
-				for (const worker in workers) {
-					workers[worker]!.kill();
-				}
-			}
-		}
-		process.on('exit', exitHandler);
-		process.on('SIGINT', exitHandler);
-
 
 		if (!fs.existsSync('.fuzz')) {
 			fs.mkdirSync('.fuzz');
@@ -66,29 +60,21 @@ export class P2PFuzzer extends IFuzzer {
 			fs.mkdirSync(this.output_dir);
 		}
 
-		this.logger = winston.createLogger({
-			format: format.combine(
-				format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
-				format.metadata({ fillExcept: ['message', 'level', 'timestamp', 'label'] }),
-			),
-			transports: [
-				new winston.transports.DailyRotateFile({
-					level: 'debug',
-					filename: 'fuzzer-%DATE%.logs',
-					datePattern: 'YYYY-MMM-DD',
-					zippedArchive: true,
-					dirname: this.output_dir,
-					format: format.printf((info) => {
-						if (info.metadata?.error) {
-							return `${info.timestamp} ${info.level}: ${info.message} ${info.metadata.error}`
-						}
+		fuzz_logger.add(new winston.transports.DailyRotateFile({
+			level: 'debug',
+			filename: 'fuzzer-%DATE%.logs',
+			datePattern: 'YYYY-MMM-DD',
+			zippedArchive: true,
+			dirname: this.output_dir,
+			format: format.printf((info) => {
+				if (info.metadata?.error) {
+					return `${info.timestamp} ${info.level}: ${info.message} ${info.metadata.error}`
+				}
 
-						return `${info.timestamp} ${info.level}: ${info.message}`
-					}),
-					maxFiles: '14d',
-				})
-			]
-		});
+				return `${info.timestamp} ${info.level}: ${info.message}`
+			}),
+			maxFiles: '14d',
+		}));
 
 		this.config = parseFuzzConfig(path);
 		this.chain = new PrivateChain(this.config.blockchain_port, this.output_dir);
@@ -100,14 +86,31 @@ export class P2PFuzzer extends IFuzzer {
 		this.peer_ids = new Array(this.config.p2p_config.num_nodes).fill(null);
 		this.ports = new Array(this.config.p2p_config.num_nodes).fill(0);
 		this.contract_address = "";
+
+		let exitHandler = async (code: number) => {
+			const workers = cluster.workers;
+			for (const worker in workers) {
+				if (workers[worker] !== undefined) {
+					fuzz_logger.info('killing worker:', workers[worker]);
+					workers[worker]!.kill();
+				}
+			}
+
+			fuzz_logger.info('Stopping chain');
+			await this.chain.stop();
+			console.log(`exited with code: ${code}`)
+		};
+
+		process.on('SIGINT', exitHandler.bind(this));
+		process.on('exit', exitHandler.bind(this));
 	}
 
 	async init() {
 		await this.chain.start();
 		this.contract_address = await this.chain.deploy()
-		this.logger.info("**deployed contract to address: ", this.contract_address);
+		fuzz_logger.info("**deployed contract to address: ", this.contract_address);
 		const creator = this.chain.get_first_account();
-		this.logger.debug("**creator", creator)
+		fuzz_logger.debug("**creator", creator)
 		this.config.p2p_config.creatorAddress = creator.address;
 		process.env[this.config.p2p_config.creatorPrivKeyEnv] = creator.data.secretKey;
 
@@ -197,8 +200,10 @@ export class P2PFuzzer extends IFuzzer {
 		});
 
 		let node_version = new_version(`${randNumberFromRange(0, 3)}.${randNumberFromRange(2, 8)}.${randNumberFromRange(3, 11)}`);
+		fuzz_logger.info(`Starting Node Version ${toString(node_version)}`);
 		let latest_node_version = node_version;
 		let report_version = new_version(`${randNumberFromRange(2, 4)}.${randNumberFromRange(0, 1)}.${randNumberFromRange(1, 6)}`);
+		fuzz_logger.info(`Starting Report Version ${toString(report_version)}`);
 		let latest_report_version = report_version;
 		process.env.P2P_NODE_VERSION = toString(node_version);
 		process.env.P2P_REPORT_VERSION = toString(report_version);
@@ -234,6 +239,7 @@ export class P2PFuzzer extends IFuzzer {
 		cluster.on('reconnect', async (child: Worker) => {
 			child.process.kill();
 			// Remain disconnected for a random interval
+			fuzz_logger.info(`Waiting to reconnect nodes in thread ${process.env.CHILD_INDEX}...`);
 			await sleep(randNumberFromRange(
 				this.config.p2p_config.reconnect_interval_min,
 				this.config.p2p_config.reconnect_interval_max
@@ -256,9 +262,7 @@ export class P2PFuzzer extends IFuzzer {
 				let minor = node_cluster.node_version.minor;
 				let patch = node_cluster.node_version.patch;
 
-				let num = randNumberFromRange(0, 100);
-				this.logger.info(`update major ${num}, ${num <= 100} `)
-				if (num <= this.config.p2p_config.major_update_chance) {
+				if (randNumberFromRange(0, 100) <= this.config.p2p_config.major_update_chance) {
 					major += 1;
 					minor = 0;
 					patch = 0;
@@ -275,7 +279,7 @@ export class P2PFuzzer extends IFuzzer {
 				const new_v = new_version(`${major}.${minor}.${patch} `);
 				process.env.P2P_NODE_VERSION = toString(new_v);
 				latest_node_version = latestVersion(new_v, node_version);
-				this.logger.info(`Updating p2p version in thread: ${process.env.CHILD_INDEX} to version ${process.env.P2P_NODE_VERSION} `);
+				fuzz_logger.info(`Updating p2p version in thread: ${process.env.CHILD_INDEX} to version ${process.env.P2P_NODE_VERSION} `);
 			}
 
 			let prev_report_version = process.env.P2P_REPORT_VERSION;
@@ -289,8 +293,7 @@ export class P2PFuzzer extends IFuzzer {
 				let minor = node_cluster.report_version.minor;
 				let patch = node_cluster.report_version.patch;
 
-				let num = randNumberFromRange(0, 100);
-				if (num <= this.config.p2p_config.major_update_chance) {
+				if (randNumberFromRange(0, 100) <= this.config.p2p_config.major_update_chance) {
 					major += 1;
 					minor = 0;
 					patch = 0;
@@ -307,10 +310,10 @@ export class P2PFuzzer extends IFuzzer {
 				const new_v = new_version(`${major}.${minor}.${patch} `);
 				process.env.P2P_REPORT_VERSION = toString(new_v);
 				latest_report_version = latestVersion(new_v, report_version);
-				this.logger.info(`Updating reports in thread: ${process.env.CHILD_INDEX} to version ${process.env.P2P_REPORT_VERSION} `);
+				fuzz_logger.info(`Updating reports in thread: ${process.env.CHILD_INDEX} to version ${process.env.P2P_REPORT_VERSION} `);
 			}
 
-			this.logger.info(`Reconnecting nodes in thread: ${process.env.CHILD_INDEX} `);
+			fuzz_logger.info(`Reconnecting nodes in thread: ${process.env.CHILD_INDEX} `);
 			let new_worker = cluster.fork(process.env).on('reconnect', (child: Worker) => cluster.emit('reconnect', child));
 
 			// restore version if not major change
@@ -334,8 +337,11 @@ export class P2PFuzzer extends IFuzzer {
 
 			if (this.config.p2p_config.allow_disconnects && randNumberFromRange(0, 100) <= this.config.p2p_config.random_disconnect_chance) {
 				const worker = random_item(cluster.workers!);
+				if (worker === undefined) {
+					fuzz_logger.error('worker is undefined', cluster.workers);
+				}
 				process.env.DC_INDEX = workers[worker.id].index;
-				this.logger.info(`Disconnecting nodes in thread: ${process.env.DC_INDEX} `);
+				fuzz_logger.info(`Disconnecting nodes in thread: ${process.env.DC_INDEX} `);
 				worker.emit('reconnect', worker);
 			}
 
@@ -343,12 +349,12 @@ export class P2PFuzzer extends IFuzzer {
 				// TODO need a way to redo remaining nodes at latest version after a few runs
 				if (node_rounds_outdated <= this.config.p2p_config.outdated_rounds_allowed) {
 					node_rounds_outdated++;
-					this.logger.info(`node_rounds_outdated: ${node_rounds_outdated} `);
+					fuzz_logger.info(`node_rounds_outdated: ${node_rounds_outdated} `);
 				} else {
 					node_rounds_outdated = 0;
 					const workers = cluster.workers!;
 					resetting_node_version = true;
-					this.logger.info(`Resetting all nodes to latest version: ${toString(latest_node_version)} `);
+					fuzz_logger.info(`Resetting all nodes to latest version: ${toString(latest_node_version)} `);
 					for (const worker in workers) {
 						const non_null = workers[worker]!;
 						non_null.emit('reconnect', non_null);
@@ -361,12 +367,12 @@ export class P2PFuzzer extends IFuzzer {
 			if (reports_version_mismatch) {
 				if (reports_rounds_outdated <= this.config.p2p_config.outdated_rounds_allowed) {
 					reports_rounds_outdated++;
-					this.logger.info(`reports_rounds_outdated: ${reports_rounds_outdated} `);
+					fuzz_logger.info(`reports_rounds_outdated: ${reports_rounds_outdated} `);
 				} else {
 					reports_rounds_outdated = 0;
 					const workers = cluster.workers!;
 					resetting_report_version = true;
-					this.logger.info(`Resetting all reports to latest version: ${toString(latest_node_version)} `);
+					fuzz_logger.info(`Resetting all reports to latest version: ${toString(latest_node_version)} `);
 					for (const worker in workers) {
 						const non_null = workers[worker]!;
 						non_null.emit('reconnect', non_null);

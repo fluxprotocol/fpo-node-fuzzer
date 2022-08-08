@@ -7,9 +7,8 @@
   "license": "GPL-3.0-only",
   "private": false,
   "scripts": {
-    "upgrade-fpo-node": "yarn upgrade",
     "build": "tsc -p .",
-    "start:p2p": "cross-env NODE_ENV=fuzz node dist/src/main.js p2p_fuzz_config.yaml"
+    "start:p2p": "cross-env NODE_ENV=test node dist/src/main.js p2p_fuzz_config.yaml"
   },
   "dependencies": {
     "crypto": "^1.0.1",
